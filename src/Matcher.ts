@@ -1,28 +1,36 @@
 import { LanguageTag, LanguageTagField } from "./LanguageTag";
+import { interceptChinese } from "./interceptChinese";
 
 export class Matcher {
     private _essentialFields: LanguageTagField[];
     private _optionalFields: LanguageTagField[];
+    private _interceptors: ((tag: LanguageTag) => LanguageTag)[];
 
     constructor(essentialFields: LanguageTagField[],
-        optionalFieldsOrderedByDescendingPriority: LanguageTagField[]) {
+        optionalFieldsOrderedByDescendingPriority: LanguageTagField[],
+        interceptors: ((tag: LanguageTag) => LanguageTag)[]) {
         this._essentialFields = essentialFields;
         this._optionalFields = optionalFieldsOrderedByDescendingPriority;
+        this._interceptors = interceptors;
     }
 
     public findBestMatchIfExists(wanted: LanguageTag, tags: LanguageTag[]): LanguageTag | undefined {
+        const interceptedWanted = this.runInterceptors(wanted);
+
         let currentMatch: CurrentMatch | undefined;
-        for (const tag of tags) {
-            if (this.hasEssentialDifferences(wanted, tag)) {
+        for (let tag of tags) {
+            const interceptedTag = this.runInterceptors(tag);
+
+            if (this.hasEssentialDifferences(interceptedWanted, interceptedTag)) {
                 continue;
             }
 
-            const numberOfMatchingOptionals = this.numberOfMatchingOptionals(wanted, tag);
+            const numberOfMatchingOptionals = this.numberOfMatchingOptionals(interceptedWanted, interceptedTag);
             if (numberOfMatchingOptionals === this._optionalFields.length) {
                 return tag;
             }
 
-            const consecutiveNullOptionalsAfterMatches = this.countConsecutiveNullOptionalFields(tag, numberOfMatchingOptionals);
+            const consecutiveNullOptionalsAfterMatches = this.countConsecutiveNullOptionalFields(interceptedTag, numberOfMatchingOptionals);
 
             if (currentMatch == null ||
                 currentMatch.numberOfMatchingOptionals < numberOfMatchingOptionals ||
@@ -74,8 +82,17 @@ export class Matcher {
         return numberOfUndefined;
     }
 
+    private runInterceptors(tag: LanguageTag): LanguageTag {
+        let intercepted = tag;
+        for (const interceptor of this._interceptors) {
+            intercepted = interceptor(intercepted);
+        }
+
+        return intercepted;
+    }
+
     public static Default(): Matcher {
-        return new Matcher(["language"], ["region"]);
+        return new Matcher(["language"], ["script", "region"], [interceptChinese]);
     }
 }
 

@@ -13,13 +13,14 @@ function MakeTestingTag(partialTag?: Partial<LanguageTag>): LanguageTag {
         privateUse: "private use"
     };
 
-    return partialTag != null ? Object.assign(defaultTag, partialTag) : defaultTag;
+    return partialTag != null ? { ...defaultTag, ...partialTag } : defaultTag;
 }
 
 describe("Matcher Simple Priority", () => {
     const matcher = new Matcher(
         ["language", "extlang", "script", "region"],
-        ["variant", "extension", "privateUse"]
+        ["variant", "extension", "privateUse"],
+        []
     );
 
     const tag = MakeTestingTag();
@@ -79,47 +80,9 @@ describe("Matcher Simple Priority", () => {
         const match = matcher.findBestMatchIfExists(tag, tags);
         expect(match).equal(undefined);
     });
-});
-
-describe("Matcher Other", () => {
-    it("Comparisons ignore case", () => {
-        const matcher = new Matcher(["language"], ["variant"]);
-        const tag = MakeTestingTag();
-        const differentCaseTag: LanguageTag = {
-            language: tag.language.toUpperCase(),
-            extlang: tag.extlang?.toLowerCase(),
-            script: tag.script?.toUpperCase(),
-            region: tag.region?.toLowerCase(),
-            variant: tag.variant?.toUpperCase(),
-            extension: tag.extension?.toLowerCase(),
-            privateUse: tag.privateUse?.toUpperCase()
-        };
-
-        const match = matcher.findBestMatchIfExists(tag, [differentCaseTag]);
-        compare(<LanguageTag>match, differentCaseTag);
-    });
-
-    it("Irrelevant differences don't matter", () => {
-        const matcher = new Matcher(["language"], ["variant"]);
-
-        const tag = MakeTestingTag();
-        const irrelevant_differences = MakeTestingTag({ extlang: "DIFFERENT extlang", script: "DIFFERENT script" });
-        const optional_differences = MakeTestingTag({ variant: "DIFFERENT variant" });
-
-        const tags = [optional_differences, irrelevant_differences];
-
-        {
-            const match = matcher.findBestMatchIfExists(tag, tags);
-            compare(<LanguageTag>match, irrelevant_differences);
-        }
-        {
-            const match = matcher.findBestMatchIfExists(tag, tags.reverse());
-            compare(<LanguageTag>match, irrelevant_differences);
-        }
-    });
 
     it("Prefer the least specific tag after a difference, so prefer a change that changes to undefined", () => {
-        const matcher = new Matcher(["language"], ["variant"]);
+        const matcher = new Matcher(["language"], ["variant"], []);
 
         const tag = MakeTestingTag();
         const variant_different = MakeTestingTag({ variant: "DIFFERENT variant" });
@@ -138,7 +101,7 @@ describe("Matcher Other", () => {
     });
 
     it("Prefer the least specific tag after a difference, so after a change to undefined prefer the tag values to continue as undefined", () => {
-        const matcher = new Matcher([], ["language", "region"]);
+        const matcher = new Matcher([], ["language", "region"], []);
 
         const tag = MakeTestingTag();
         const undefined_hasValue = MakeTestingTag( { language: undefined, region: tag.region } );
@@ -155,6 +118,75 @@ describe("Matcher Other", () => {
             const match = matcher.findBestMatchIfExists(tag, tags.reverse());
             compare(<LanguageTag>match, undefined_undefined);
         }
+    });
+});
+
+describe("Matcher Other", () => {
+    it("Comparisons ignore case", () => {
+        const matcher = new Matcher(["language"], ["variant"], []);
+        const tag = MakeTestingTag();
+        const differentCaseTag: LanguageTag = {
+            language: tag.language.toUpperCase(),
+            extlang: tag.extlang?.toLowerCase(),
+            script: tag.script?.toUpperCase(),
+            region: tag.region?.toLowerCase(),
+            variant: tag.variant?.toUpperCase(),
+            extension: tag.extension?.toLowerCase(),
+            privateUse: tag.privateUse?.toUpperCase()
+        };
+
+        const match = matcher.findBestMatchIfExists(tag, [differentCaseTag]);
+        compare(<LanguageTag>match, differentCaseTag);
+    });
+
+    it("Irrelevant differences don't matter", () => {
+        const matcher = new Matcher(["language"], ["variant"], []);
+
+        const tag = MakeTestingTag();
+        const irrelevant_differences = MakeTestingTag({ extlang: "DIFFERENT extlang", script: "DIFFERENT script" });
+        const optional_differences = MakeTestingTag({ variant: "DIFFERENT variant" });
+
+        const tags = [optional_differences, irrelevant_differences];
+
+        {
+            const match = matcher.findBestMatchIfExists(tag, tags);
+            compare(<LanguageTag>match, irrelevant_differences);
+        }
+        {
+            const match = matcher.findBestMatchIfExists(tag, tags.reverse());
+            compare(<LanguageTag>match, irrelevant_differences);
+        }
+    });
+
+    it("All tags are passed through the provided interceptors, but the output is not mutated", () => {
+        const swedish = { language: "se" };
+        const danish = { language: "da" };
+        const english = { language: "en" };
+        const french = { language: "fr" };
+        function MoveSouth(tag: LanguageTag) {
+            switch(tag.language) {
+                case "se":
+                    return danish;
+                case "en":
+                    return french;
+                default:
+                    throw "MoveSouth"
+            }
+        }
+        function TurnDanishIntoFrench(tag: LanguageTag) {
+            switch(tag.language) {
+                case "da":
+                    return french;
+                default:
+                    return tag;
+            }
+        }
+
+        const matcher = new Matcher(["language"], [], [MoveSouth, TurnDanishIntoFrench]);
+
+        const match = matcher.findBestMatchIfExists(swedish, [english]);
+
+        compare(<LanguageTag>match, english);
     });
 });
 
