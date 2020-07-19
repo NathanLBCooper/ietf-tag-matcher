@@ -1,7 +1,7 @@
 import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
 
-export class Matcher<TEntity> {
+export class Matcher<TEntity extends Record<string, string | undefined>> {
     private _essentialFields: (keyof TEntity)[];
     private _optionalFields: (keyof TEntity)[];
     private _interceptors: ((tag: TEntity) => TEntity)[];
@@ -49,7 +49,7 @@ export class Matcher<TEntity> {
 
     private hasEssentialDifferences(left: TEntity, right: TEntity): boolean {
         for (const field of this._essentialFields) {
-            if (normalize(left[field]) !== normalize(right[field])) {
+            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
                 return true;
             }
         }
@@ -60,7 +60,7 @@ export class Matcher<TEntity> {
     private numberOfMatchingOptionals(left: TEntity, right: TEntity): number {
         for (let index = 0; index < this._optionalFields.length; index++) {
             const field = this._optionalFields[index];
-            if (normalize(left[field]) !== normalize(right[field])) {
+            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
                 return index;
             }
         }
@@ -94,15 +94,6 @@ export class Matcher<TEntity> {
     public static Default(): Matcher<LanguageTag> {
         return new Matcher<LanguageTag>(["language"], ["script", "region"], [interceptChinese]);
     }
-}
-
-function normalize(obj: unknown) {
-    const isDefinedString = obj != null && Object.prototype.toString.call(obj) === "[object String]";
-    if (isDefinedString) {
-        return (<string>obj).toLowerCase();
-    }
-
-    return obj;
 }
 
 interface CurrentMatch<TEntity> {

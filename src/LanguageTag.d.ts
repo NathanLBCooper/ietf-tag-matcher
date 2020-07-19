@@ -1,4 +1,4 @@
-export interface LanguageTag {
+export interface LanguageTag extends Record<string,string | undefined> {
     language: string;
     extlang?: string;
     script?: string;

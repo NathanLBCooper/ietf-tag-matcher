@@ -47,7 +47,7 @@ A matcher can be created with a configuration of your choice by calling the cons
 
 Let's look at the class name and constructor signature: 
 
-    Matcher<TEntity>
+    Matcher<TEntity extends Record<string, string | undefined>>
 
     constructor(
         essentialFields: (keyof TEntity)[],
@@ -56,7 +56,9 @@ Let's look at the class name and constructor signature:
     )
 
 > #### TEntity
-> The matcher doesn't particular care about `LanguageTag`. The advantage of this is that if you want to extend `LanguageTag` to add more fields not found in the IETF Language definition, you can. But otherwise `LanguageTag` is a very sensible choice of TEntity. For the sake is documentation, we'll assume `TEntity` is `LanguageTag`.
+> The matcher doesn't particular care about `LanguageTag`. The advantage of this is that if you want to extend `LanguageTag` to add more fields not found in the IETF Language definition, you can. The `Record` part means that `TEntity` is an object exclusively string properties, as the matcher only compares strings. 
+>
+>For the sake is documentation, we'll assume `TEntity` is `LanguageTag`.
 
 > #### essentialFields:
 > The `essentialFields` must be equal for a tag to match another.

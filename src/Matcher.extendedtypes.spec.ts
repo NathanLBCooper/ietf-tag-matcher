@@ -6,9 +6,9 @@ interface LanguageTagWithFamily extends LanguageTag {
     languageFamily: string;
 }
 
-interface LanguageTagWithUnderstoodBy extends LanguageTag {
-    understoodBy: string[];
-}
+// interface LanguageTagWithUnderstoodBy extends LanguageTag {
+//     understoodBy: string[];
+// }
 
 describe("Matcher, extended types", () => {
     it("Can match on custom fields", () => {
@@ -23,20 +23,20 @@ describe("Matcher, extended types", () => {
         compare(<LanguageTag>match, danish);
     });
 
-    it.skip("Can match on complex non-symmetrical relationships", () => {
-        /** Not supported is this even a thing you'd need? */
+    // it.skip("Can match on complex non-symmetrical relationships", () => {
+    //     /** Not supported is this even a thing you'd need? */
 
-        const matcher = new Matcher<LanguageTagWithUnderstoodBy>(["understoodBy"], ["language"], []);
+    //     const matcher = new Matcher<LanguageTagWithUnderstoodBy>(["understoodBy"], ["language"], []);
 
-        const swedish = { understoodBy: ["sv", "da"], language: "sv" };
-        const danish = { understoodBy: ["da"], language: "da" };
+    //     const swedish = { understoodBy: ["sv", "da"], language: "sv" };
+    //     const danish = { understoodBy: ["da"], language: "da" };
 
-        const swedeMatch = matcher.findBestMatchIfExists(danish, [swedish]);
-        const daneMatch = matcher.findBestMatchIfExists(danish, [swedish]);
+    //     const swedeMatch = matcher.findBestMatchIfExists(danish, [swedish]);
+    //     const daneMatch = matcher.findBestMatchIfExists(danish, [swedish]);
 
-        expect(swedeMatch).undefined;
-        compare(<LanguageTag>daneMatch, swedish);
-    });
+    //     expect(swedeMatch).undefined;
+    //     compare(<LanguageTag>daneMatch, swedish);
+    // });
 });
 
 function compare(actual: LanguageTag, expected: LanguageTag) {
