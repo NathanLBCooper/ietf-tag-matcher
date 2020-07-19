@@ -1,13 +1,13 @@
-import { LanguageTag, LanguageTagField } from "./LanguageTag";
+import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
 
 export class Matcher {
-    private _essentialFields: LanguageTagField[];
-    private _optionalFields: LanguageTagField[];
+    private _essentialFields: (keyof LanguageTag)[];
+    private _optionalFields: (keyof LanguageTag)[];
     private _interceptors: ((tag: LanguageTag) => LanguageTag)[];
 
-    constructor(essentialFields: LanguageTagField[],
-        optionalFieldsOrderedByDescendingPriority: LanguageTagField[],
+    constructor(essentialFields: (keyof LanguageTag)[],
+        optionalFieldsOrderedByDescendingPriority: (keyof LanguageTag)[],
         interceptors: ((tag: LanguageTag) => LanguageTag)[]) {
         this._essentialFields = essentialFields;
         this._optionalFields = optionalFieldsOrderedByDescendingPriority;

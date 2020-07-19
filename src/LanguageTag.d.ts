@@ -7,5 +7,3 @@ export interface LanguageTag {
     extension?: string;
     privateUse?: string;
 }
-
-export type LanguageTagField = "language" | "extlang" | "script" | "region" | "variant" | "extension" | "privateUse";
