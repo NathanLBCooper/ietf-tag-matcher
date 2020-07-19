@@ -1,23 +1,23 @@
 import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
 
-export class Matcher {
-    private _essentialFields: (keyof LanguageTag)[];
-    private _optionalFields: (keyof LanguageTag)[];
-    private _interceptors: ((tag: LanguageTag) => LanguageTag)[];
+export class Matcher<TEntity> {
+    private _essentialFields: (keyof TEntity)[];
+    private _optionalFields: (keyof TEntity)[];
+    private _interceptors: ((tag: TEntity) => TEntity)[];
 
-    constructor(essentialFields: (keyof LanguageTag)[],
-        optionalFieldsOrderedByDescendingPriority: (keyof LanguageTag)[],
-        interceptors: ((tag: LanguageTag) => LanguageTag)[]) {
+    constructor(essentialFields: (keyof TEntity)[],
+        optionalFieldsOrderedByDescendingPriority: (keyof TEntity)[],
+        interceptors: ((tag: TEntity) => TEntity)[]) {
         this._essentialFields = essentialFields;
         this._optionalFields = optionalFieldsOrderedByDescendingPriority;
         this._interceptors = interceptors;
     }
 
-    public findBestMatchIfExists(wanted: LanguageTag, tags: LanguageTag[]): LanguageTag | undefined {
+    public findBestMatchIfExists(wanted: TEntity, tags: TEntity[]): TEntity | undefined {
         const interceptedWanted = this.runInterceptors(wanted);
 
-        let currentMatch: CurrentMatch | undefined;
+        let currentMatch: CurrentMatch<TEntity> | undefined;
         for (const tag of tags) {
             const interceptedTag = this.runInterceptors(tag);
 
@@ -47,9 +47,9 @@ export class Matcher {
         return currentMatch?.tag;
     }
 
-    private hasEssentialDifferences(left: LanguageTag, right: LanguageTag): boolean {
+    private hasEssentialDifferences(left: TEntity, right: TEntity): boolean {
         for (const field of this._essentialFields) {
-            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
+            if (normalize(left[field]) !== normalize(right[field])) {
                 return true;
             }
         }
@@ -57,10 +57,10 @@ export class Matcher {
         return false;
     }
 
-    private numberOfMatchingOptionals(left: LanguageTag, right: LanguageTag): number {
+    private numberOfMatchingOptionals(left: TEntity, right: TEntity): number {
         for (let index = 0; index < this._optionalFields.length; index++) {
             const field = this._optionalFields[index];
-            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
+            if (normalize(left[field]) !== normalize(right[field])) {
                 return index;
             }
         }
@@ -68,7 +68,7 @@ export class Matcher {
         return this._optionalFields.length;
     }
 
-    private countConsecutiveNullOptionalFields(tag: LanguageTag, skipFields: number): number {
+    private countConsecutiveNullOptionalFields(tag: TEntity, skipFields: number): number {
         let numberOfUndefined = 0;
         for (let index = skipFields; index < this._optionalFields.length; index++) {
             const field = this._optionalFields[index];
@@ -82,7 +82,7 @@ export class Matcher {
         return numberOfUndefined;
     }
 
-    private runInterceptors(tag: LanguageTag): LanguageTag {
+    private runInterceptors(tag: TEntity): TEntity {
         let intercepted = tag;
         for (const interceptor of this._interceptors) {
             intercepted = interceptor(intercepted);
@@ -91,13 +91,22 @@ export class Matcher {
         return intercepted;
     }
 
-    public static Default(): Matcher {
-        return new Matcher(["language"], ["script", "region"], [interceptChinese]);
+    public static Default(): Matcher<LanguageTag> {
+        return new Matcher<LanguageTag>(["language"], ["script", "region"], [interceptChinese]);
     }
 }
 
-interface CurrentMatch {
-    tag: LanguageTag;
+function normalize(obj: unknown) {
+    const isDefinedString = obj != null && Object.prototype.toString.call(obj) === "[object String]";
+    if (isDefinedString) {
+        return (<string>obj).toLowerCase();
+    }
+
+    return obj;
+}
+
+interface CurrentMatch<TEntity> {
+    tag: TEntity;
     numberOfMatchingOptionals: number;
     consecutiveNullOptionalsAfterMatches: number;
 }

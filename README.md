@@ -45,13 +45,18 @@ In this example, we have swedish and english files. These aren't any good someon
 
 A matcher can be created with a configuration of your choice by calling the constructor instead of just creating it via `Default()`.
 
-Let's look at the constructor signature: 
+Let's look at the class name and constructor signature: 
+
+    Matcher<TEntity>
 
     constructor(
-        essentialFields: LanguageTagField[],
-        optionalFieldsOrderedByDescendingPriority: LanguageTagField[],
-        interceptors: ((tag: LanguageTag) => LanguageTag)[]
+        essentialFields: (keyof TEntity)[],
+        optionalFieldsOrderedByDescendingPriority: (keyof TEntity)[],
+        interceptors: ((tag: TEntity) => TEntity)[]
     )
+
+> #### TEntity
+> The matcher doesn't particular care about `LanguageTag`. The advantage of this is that if you want to extend `LanguageTag` to add more fields not found in the IETF Language definition, you can. But otherwise `LanguageTag` is a very sensible choice of TEntity. For the sake is documentation, we'll assume `TEntity` is `LanguageTag`.
 
 > #### essentialFields:
 > The `essentialFields` must be equal for a tag to match another.
@@ -70,5 +75,7 @@ Any field that doesn't appear in `essentialFields` or `optionalFieldsOrderedByDe
 > Before tags are compared, they are both "intercepted": they are passed through the functions provided in this parameter.
 >
 > Interceptors are used to add extra information to aid comparison. They should take a `LanguageTag` and return a new `LanguageTag` without mutating the original.
+>
+> Everything an interceptor does can be done by mutating all the tag inputs before passing them to the matcher, but an interceptor can keep the logic and mutations hidden within the matcher.
 >
 > This is actually how chinese language comparsion works by default. There is no special code in the matcher that knows `zh-CN` is a type of `zh-hans` and that `zh-HK` is a type of `zh-hant`. But an interceptor knows, and it adds the script to the tags before comparison.

@@ -17,7 +17,7 @@ function MakeTestingTag(partialTag?: Partial<LanguageTag>): LanguageTag {
 }
 
 describe("Matcher Simple Priority", () => {
-    const matcher = new Matcher(
+    const matcher = new Matcher<LanguageTag>(
         ["language", "extlang", "script", "region"],
         ["variant", "extension", "privateUse"],
         []
@@ -82,7 +82,7 @@ describe("Matcher Simple Priority", () => {
     });
 
     it("Prefer the least specific tag after a difference, so prefer a change that changes to undefined", () => {
-        const matcher = new Matcher(["language"], ["variant"], []);
+        const matcher = new Matcher<LanguageTag>(["language"], ["variant"], []);
 
         const tag = MakeTestingTag();
         const variant_different = MakeTestingTag({ variant: "DIFFERENT variant" });
@@ -101,7 +101,7 @@ describe("Matcher Simple Priority", () => {
     });
 
     it("Prefer the least specific tag after a difference, so after a change to undefined prefer the tag values to continue as undefined", () => {
-            const matcher = new Matcher([], ["language", "region"], []);
+            const matcher = new Matcher<LanguageTag>([], ["language", "region"], []);
 
             const tag = MakeTestingTag();
             const undefined_hasValue = MakeTestingTag({ language: undefined, region: tag.region });
@@ -124,7 +124,7 @@ describe("Matcher Simple Priority", () => {
 
 describe("Matcher Other", () => {
     it("Comparisons ignore case", () => {
-        const matcher = new Matcher(["language"], ["variant"], []);
+        const matcher = new Matcher<LanguageTag>(["language"], ["variant"], []);
         const tag = MakeTestingTag();
         const differentCaseTag: LanguageTag = {
             language: tag.language.toUpperCase(),
@@ -141,7 +141,7 @@ describe("Matcher Other", () => {
     });
 
     it("Irrelevant differences don't matter", () => {
-        const matcher = new Matcher(["language"], ["variant"], []);
+        const matcher = new Matcher<LanguageTag>(["language"], ["variant"], []);
 
         const tag = MakeTestingTag();
         const irrelevant_differences = MakeTestingTag({ extlang: "DIFFERENT extlang", script: "DIFFERENT script" });
@@ -183,7 +183,7 @@ describe("Matcher Other", () => {
             }
         }
 
-        const matcher = new Matcher(["language"], [], [MoveSouth, TurnDanishIntoFrench]);
+        const matcher = new Matcher<LanguageTag>(["language"], [], [MoveSouth, TurnDanishIntoFrench]);
 
         const match = matcher.findBestMatchIfExists(swedish, [english]);
 
