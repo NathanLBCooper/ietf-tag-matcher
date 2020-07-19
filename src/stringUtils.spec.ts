@@ -3,7 +3,7 @@ import { isNullOrWhitespace } from "./stringUtils";
 
 describe("string utils", () => {
     it("isNullOrWhitespace is false for strings with content", () => {
-        let validStrings = [" one", "two", "   three  "];
+        const validStrings = [" one", "two", "   three  "];
         for (const str of validStrings) {
             expect(isNullOrWhitespace(str)).false;
         }

@@ -9,9 +9,9 @@ export function interceptChinese(tag: LanguageTag): LanguageTag {
     const region = (<string>tag.region).toLowerCase();
 
     if (["cn", "sg", "my"].includes(region)) {
-        return {...tag, script: "hans" }
+        return {...tag, script: "hans" };
     } else if (["tw", "hk", "mo"].includes(region)) {
-        return {...tag, script: "hant" }
+        return {...tag, script: "hant" };
     }
 
     return tag;

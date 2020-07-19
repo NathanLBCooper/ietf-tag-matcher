@@ -29,7 +29,7 @@ describe("Matcher Simple Priority", () => {
     const match_match_diff = MakeTestingTag({ privateUse: "DIFFERENT privateUse" });
     const match_diff_match = MakeTestingTag({ extension: "DIFFERENT extension" });
     const diff_match_match = MakeTestingTag({ variant: "DIFFERENT variant" });
-    const non_matching_essential_fields = MakeTestingTag({ script: "DIFFERENT SCRIPT" })
+    const non_matching_essential_fields = MakeTestingTag({ script: "DIFFERENT SCRIPT" });
 
     it("First choice is a complete match", () => {
         const tags = [match_match_match, match_match_diff, match_diff_match, diff_match_match, non_matching_essential_fields].reverse();
@@ -38,7 +38,7 @@ describe("Matcher Simple Priority", () => {
         compare(<LanguageTag>match, match_match_match);
     });
 
-    it("Next a match with the least important optional different", ()=> {
+    it("Next a match with the least important optional different", () => {
         {
             const tags = [match_match_diff, match_diff_match, diff_match_match, non_matching_essential_fields].reverse();
 
@@ -69,7 +69,7 @@ describe("Matcher Simple Priority", () => {
         const reverseMatch = matcher.findBestMatchIfExists(tag, reverseTags);
 
         // If it doesn't matter, I'm assuming it's somehow related to order.
-        expect(match?.extension).not.equal(reverseMatch?.extension)
+        expect(match?.extension).not.equal(reverseMatch?.extension);
         expect(match?.extension == diff_match_match.extension || match?.extension == diff_diff_diff.extension);
         expect(reverseMatch?.extension == diff_match_match.extension || reverseMatch?.extension == diff_diff_diff.extension);
     });
@@ -101,24 +101,25 @@ describe("Matcher Simple Priority", () => {
     });
 
     it("Prefer the least specific tag after a difference, so after a change to undefined prefer the tag values to continue as undefined", () => {
-        const matcher = new Matcher([], ["language", "region"], []);
+            const matcher = new Matcher([], ["language", "region"], []);
 
-        const tag = MakeTestingTag();
-        const undefined_hasValue = MakeTestingTag( { language: undefined, region: tag.region } );
-        const undefined_undefined = MakeTestingTag({ language: undefined, region: undefined });
-        /* Note: It doesn't matter than the region is the same, it's in the context of a different language, so we're choosing less specificity to be better*/
+            const tag = MakeTestingTag();
+            const undefined_hasValue = MakeTestingTag({ language: undefined, region: tag.region });
+            const undefined_undefined = MakeTestingTag({ language: undefined, region: undefined });
+            /* Note: It doesn't matter than the region is the same, it's in the context of a different language,
+            so we're choosing less specificity to be better*/
 
-        const tags = [undefined_hasValue, undefined_undefined];
+            const tags = [undefined_hasValue, undefined_undefined];
 
-        {
-            const match = matcher.findBestMatchIfExists(tag, tags);
-            compare(<LanguageTag>match, undefined_undefined);
-        }
-        {
-            const match = matcher.findBestMatchIfExists(tag, tags.reverse());
-            compare(<LanguageTag>match, undefined_undefined);
-        }
-    });
+            {
+                const match = matcher.findBestMatchIfExists(tag, tags);
+                compare(<LanguageTag>match, undefined_undefined);
+            }
+            {
+                const match = matcher.findBestMatchIfExists(tag, tags.reverse());
+                compare(<LanguageTag>match, undefined_undefined);
+            }
+        });
 });
 
 describe("Matcher Other", () => {
@@ -164,17 +165,17 @@ describe("Matcher Other", () => {
         const english = { language: "en" };
         const french = { language: "fr" };
         function MoveSouth(tag: LanguageTag) {
-            switch(tag.language) {
+            switch (tag.language) {
                 case "se":
                     return danish;
                 case "en":
                     return french;
                 default:
-                    throw "MoveSouth"
+                    throw "MoveSouth";
             }
         }
         function TurnDanishIntoFrench(tag: LanguageTag) {
-            switch(tag.language) {
+            switch (tag.language) {
                 case "da":
                     return french;
                 default:

@@ -18,7 +18,7 @@ export class Matcher {
         const interceptedWanted = this.runInterceptors(wanted);
 
         let currentMatch: CurrentMatch | undefined;
-        for (let tag of tags) {
+        for (const tag of tags) {
             const interceptedTag = this.runInterceptors(tag);
 
             if (this.hasEssentialDifferences(interceptedWanted, interceptedTag)) {
