@@ -1,16 +1,20 @@
 import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
+import { AllStringFields, FieldComparer, FieldEqualityComparer } from "./FieldComparer";
+import { isNullOrWhitespace } from "./stringUtils";
 
-export class Matcher<TEntity extends Record<string, string | undefined>> {
-    private _essentialFields: (keyof TEntity)[];
-    private _optionalFields: (keyof TEntity)[];
+export class Matcher<TEntity> {
+    private _essential: FieldEqualityComparer<TEntity>[];
+    private _optional: FieldComparer<TEntity>[];
     private _interceptors: ((tag: TEntity) => TEntity)[];
 
-    constructor(essentialFields: (keyof TEntity)[],
-        optionalFieldsOrderedByDescendingPriority: (keyof TEntity)[],
-        interceptors: ((tag: TEntity) => TEntity)[]) {
-        this._essentialFields = essentialFields;
-        this._optionalFields = optionalFieldsOrderedByDescendingPriority;
+    constructor(
+        essential: FieldEqualityComparer<TEntity>[],
+        optionalDescendingPriority: FieldComparer<TEntity>[],
+        interceptors: ((entity: TEntity) => TEntity)[]
+    ) {
+        this._essential = essential;
+        this._optional = optionalDescendingPriority;
         this._interceptors = interceptors;
     }
 
@@ -26,19 +30,19 @@ export class Matcher<TEntity extends Record<string, string | undefined>> {
             }
 
             const numberOfMatchingOptionals = this.numberOfMatchingOptionals(interceptedWanted, interceptedTag);
-            if (numberOfMatchingOptionals === this._optionalFields.length) {
+            if (numberOfMatchingOptionals === this._optional.length) {
                 return tag;
             }
 
-            const consecutiveNullOptionalsAfterMatches = this.countConsecutiveNullOptionalFields(interceptedTag, numberOfMatchingOptionals);
+            const consecutiveEmptyOptionalsAfterMatches = this.countConsecutiveEmptyOptionalFields(interceptedTag, numberOfMatchingOptionals);
 
             if (currentMatch == null ||
                 currentMatch.numberOfMatchingOptionals < numberOfMatchingOptionals ||
-                currentMatch.consecutiveNullOptionalsAfterMatches < consecutiveNullOptionalsAfterMatches) {
+                currentMatch.consecutiveEmptyOptionalsAfterMatches < consecutiveEmptyOptionalsAfterMatches) {
                 currentMatch = {
                     tag: tag,
                     numberOfMatchingOptionals: numberOfMatchingOptionals,
-                    consecutiveNullOptionalsAfterMatches: consecutiveNullOptionalsAfterMatches
+                    consecutiveEmptyOptionalsAfterMatches: consecutiveEmptyOptionalsAfterMatches
                 };
                 continue;
             }
@@ -48,8 +52,8 @@ export class Matcher<TEntity extends Record<string, string | undefined>> {
     }
 
     private hasEssentialDifferences(left: TEntity, right: TEntity): boolean {
-        for (const field of this._essentialFields) {
-            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
+        for (const field of this._essential) {
+            if (!field.areEqual(left, right)) {
                 return true;
             }
         }
@@ -58,21 +62,21 @@ export class Matcher<TEntity extends Record<string, string | undefined>> {
     }
 
     private numberOfMatchingOptionals(left: TEntity, right: TEntity): number {
-        for (let index = 0; index < this._optionalFields.length; index++) {
-            const field = this._optionalFields[index];
-            if (left[field]?.toLowerCase() !== right[field]?.toLowerCase()) {
+        for (let index = 0; index < this._optional.length; index++) {
+            const field = this._optional[index];
+            if (!field.areEqual(left, right)) {
                 return index;
             }
         }
 
-        return this._optionalFields.length;
+        return this._optional.length;
     }
 
-    private countConsecutiveNullOptionalFields(tag: TEntity, skipFields: number): number {
+    private countConsecutiveEmptyOptionalFields(tag: TEntity, skipFields: number): number {
         let numberOfUndefined = 0;
-        for (let index = skipFields; index < this._optionalFields.length; index++) {
-            const field = this._optionalFields[index];
-            if (tag[field] == null) {
+        for (let index = skipFields; index < this._optional.length; index++) {
+            const field = this._optional[index];
+            if (field.isEmpty(tag)) {
                 numberOfUndefined++;
             } else {
                 break;
@@ -91,13 +95,41 @@ export class Matcher<TEntity extends Record<string, string | undefined>> {
         return intercepted;
     }
 
-    public static Default(): Matcher<LanguageTag> {
-        return new Matcher<LanguageTag>(["language"], ["script", "region"], [interceptChinese]);
+    public static createFromKeys<T extends AllStringFields<T>>(
+        essential: (keyof T)[],
+        optionalDescendingPriority: (keyof T)[],
+        interceptors: ((tag: T) => T)[]): Matcher<T> {
+        return new Matcher<T>(
+            essential.map(createStringFieldEqualityComparer),
+            optionalDescendingPriority.map(createStringFieldComparer),
+            interceptors
+        )
     }
+
+    public static default(): Matcher<LanguageTag> {
+        return this.createFromKeys<LanguageTag>(
+            ["language"],
+            ["script", "region"],
+            [ interceptChinese]
+        );
+    }
+}
+
+export function createStringFieldEqualityComparer<TEntity extends AllStringFields<TEntity>>(key: (keyof TEntity)): FieldEqualityComparer<TEntity> {
+    return {
+        areEqual: (left: TEntity, right: TEntity) => left[key]?.toLowerCase() === right[key]?.toLowerCase()
+    };
+}
+
+export function createStringFieldComparer<TEntity extends AllStringFields<TEntity>>(key: (keyof TEntity)): FieldComparer<TEntity> {
+    return {
+        ...createStringFieldEqualityComparer<TEntity>(key),
+        isEmpty: (value: TEntity) => isNullOrWhitespace(value[key])
+    };
 }
 
 interface CurrentMatch<TEntity> {
     tag: TEntity;
     numberOfMatchingOptionals: number;
-    consecutiveNullOptionalsAfterMatches: number;
+    consecutiveEmptyOptionalsAfterMatches: number;
 }

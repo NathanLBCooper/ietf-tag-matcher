@@ -8,7 +8,7 @@ describe("Default Matcher", () => {
     const finnishSwedish = { language: "sv", region: "fi" };
     const english = { language: "en" };
 
-    const matcher = Matcher.Default();
+    const matcher = Matcher.default();
 
     it("Match regional directly", () => {
         const directMatch = matcher.findBestMatchIfExists(swedishSwedish, [english, baseSwedish, finnishSwedish, swedishSwedish]);
@@ -41,7 +41,7 @@ describe("Default Matcher, Chinese", () => {
     const singaporeanChinese = { language: "zh", region: "SG" };
     const malaysianChinese = { language: "zh", region: "MY" };
 
-    const matcher = Matcher.Default();
+    const matcher = Matcher.default();
 
     it("Match traditional chinese regions with traditional chinese", () => {
         function AssertTraditionalMatch(tag: LanguageTag) {
