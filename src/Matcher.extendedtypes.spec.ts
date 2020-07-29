@@ -1,5 +1,6 @@
 import { expect } from "chai";
-import { Matcher, createStringFieldComparer } from "./Matcher";
+import { Matcher } from "./Matcher";
+import { createEqualityAndEmptyCheck } from "./checks";
 import { LanguageTag } from "./LanguageTag";
 
 interface LanguageTagWithFamily extends LanguageTag {
@@ -24,7 +25,7 @@ describe("Matcher, extended types", () => {
     });
 
     it("Can match on complex non-symmetrical relationships", () => {
-        function compareUnderstoodBy(left: LanguageTagWithUnderstoodBy, right: LanguageTagWithUnderstoodBy): boolean {
+        function compareUnderstoodBy(left: LanguageTag, right: LanguageTagWithUnderstoodBy): boolean {
             return left.language === right.language || right.understoodBy.includes(left.language);
         }
 
@@ -33,10 +34,10 @@ describe("Matcher, extended types", () => {
                 areEqual: compareUnderstoodBy
             }],
             [
-                createStringFieldComparer<LanguageTag>("language")
+                createEqualityAndEmptyCheck<LanguageTag>("language")
             ],
             []
-        )
+        );
 
         const swedish = { understoodBy: ["da"], language: "sv" };
         const danish = { understoodBy: [], language: "da" };

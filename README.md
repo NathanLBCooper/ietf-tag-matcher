@@ -97,7 +97,7 @@ Now let's look at the most maximally customized matcher it's possible to make:
                     isEmpty: value => value.script == null || value.script === ""
                 },
                 // Do the sensible default comparisons on region
-                createStringFieldComparer("region")
+                createEqualityAndEmptyCheck("region")
             ],
             [
                 // Re-implement the already provided interceptChinese() but the wrong way around

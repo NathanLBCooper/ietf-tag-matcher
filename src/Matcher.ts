@@ -1,16 +1,15 @@
 import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
-import { AllStringFields, FieldComparer, FieldEqualityComparer } from "./FieldComparer";
-import { isNullOrWhitespace } from "./stringUtils";
+import { AllStringFields, AreEqualCheck, IsEmptyCheck, createEqualityCheck, createEqualityAndEmptyCheck } from "./checks";
 
 export class Matcher<TEntity> {
-    private _essential: FieldEqualityComparer<TEntity>[];
-    private _optional: FieldComparer<TEntity>[];
+    private _essential: AreEqualCheck<TEntity>[];
+    private _optional: (AreEqualCheck<TEntity> & IsEmptyCheck<TEntity>)[];
     private _interceptors: ((tag: TEntity) => TEntity)[];
 
     constructor(
-        essential: FieldEqualityComparer<TEntity>[],
-        optionalDescendingPriority: FieldComparer<TEntity>[],
+        essential: AreEqualCheck<TEntity>[],
+        optionalDescendingPriority: (AreEqualCheck<TEntity> & IsEmptyCheck<TEntity>)[],
         interceptors: ((entity: TEntity) => TEntity)[]
     ) {
         this._essential = essential;
@@ -100,10 +99,10 @@ export class Matcher<TEntity> {
         optionalDescendingPriority: (keyof T)[],
         interceptors: ((tag: T) => T)[]): Matcher<T> {
         return new Matcher<T>(
-            essential.map(createStringFieldEqualityComparer),
-            optionalDescendingPriority.map(createStringFieldComparer),
+            essential.map(createEqualityCheck),
+            optionalDescendingPriority.map(createEqualityAndEmptyCheck),
             interceptors
-        )
+        );
     }
 
     public static default(): Matcher<LanguageTag> {
@@ -113,19 +112,6 @@ export class Matcher<TEntity> {
             [ interceptChinese]
         );
     }
-}
-
-export function createStringFieldEqualityComparer<TEntity extends AllStringFields<TEntity>>(key: (keyof TEntity)): FieldEqualityComparer<TEntity> {
-    return {
-        areEqual: (left: TEntity, right: TEntity) => left[key]?.toLowerCase() === right[key]?.toLowerCase()
-    };
-}
-
-export function createStringFieldComparer<TEntity extends AllStringFields<TEntity>>(key: (keyof TEntity)): FieldComparer<TEntity> {
-    return {
-        ...createStringFieldEqualityComparer<TEntity>(key),
-        isEmpty: (value: TEntity) => isNullOrWhitespace(value[key])
-    };
 }
 
 interface CurrentMatch<TEntity> {
