@@ -8,7 +8,7 @@ interface LanguageTagWithFamily extends LanguageTag {
 }
 
 interface LanguageTagWithUnderstoodBy extends LanguageTag {
-    understoodBy: string[];
+    understoodBy?: string[];
 }
 
 describe("Matcher, extended types", () => {
@@ -26,27 +26,40 @@ describe("Matcher, extended types", () => {
 
     it("Can match on complex non-symmetrical relationships", () => {
         function compareUnderstoodBy(left: LanguageTag, right: LanguageTagWithUnderstoodBy): boolean {
-            return left.language === right.language || right.understoodBy.includes(left.language);
+            return left.language === right.language || (right.understoodBy != null && right.understoodBy.includes(left.language));
         }
 
-        const matcher = new Matcher(
+        function addUnderstoodBy(tag: LanguageTagWithUnderstoodBy): LanguageTagWithUnderstoodBy {
+            if (tag.language === "sv") {
+                return { ...tag, understoodBy: ["da"] };
+            }
+            else {
+                return { ...tag };
+            }
+        }
+
+        const matcher = new Matcher<LanguageTag, LanguageTagWithUnderstoodBy>(
             [{
                 areEqual: compareUnderstoodBy
             }],
             [
                 createEqualityAndEmptyCheck<LanguageTag>("language")
             ],
-            []
+            [],
+            [addUnderstoodBy]
         );
 
-        const swedish = { understoodBy: ["da"], language: "sv" };
-        const danish = { understoodBy: [], language: "da" };
+        const swedish = { language: "sv" };
+        const norwegian = { language: "no", understoodBy: ["da"] }
+        const danish = { language: "da" };
 
-        const swedeMatch = matcher.findBestMatchIfExists(swedish, [danish]);
-        const daneMatch = matcher.findBestMatchIfExists(danish, [swedish]);
+        const danishIsImpossible = matcher.findBestMatchIfExists(swedish, [danish]);
+        const swedishIsGood = matcher.findBestMatchIfExists(danish, [swedish]);
+        const norwegianIsAlsoFine = matcher.findBestMatchIfExists(danish, [norwegian]);
 
-        expect(swedeMatch).undefined;
-        compare(<LanguageTag>daneMatch, swedish);
+        expect(danishIsImpossible).undefined;
+        compare(<LanguageTagWithFamily>swedishIsGood, swedish);
+        compare(<LanguageTagWithFamily>norwegianIsAlsoFine, norwegian);
     });
 });
 

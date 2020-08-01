@@ -2,27 +2,30 @@ import { LanguageTag } from "./LanguageTag";
 import { interceptChinese } from "./interceptChinese";
 import { AllStringFields, AreEqualCheck, IsEmptyCheck, createEqualityCheck, createEqualityAndEmptyCheck } from "./checks";
 
-export class Matcher<TEntity> {
-    private _essential: AreEqualCheck<TEntity>[];
-    private _optional: (AreEqualCheck<TEntity> & IsEmptyCheck<TEntity>)[];
-    private _interceptors: ((tag: TEntity) => TEntity)[];
+export class Matcher<TWanted, TTag> {
+    private _essential: AreEqualCheck<TWanted, TTag>[];
+    private _optional: (AreEqualCheck<TWanted, TTag> & IsEmptyCheck<TTag>)[];
+    private _wantedInterceptors: ((tag: TWanted) => TWanted)[];
+    private _tagInterceptors: ((tag: TTag) => TTag)[];
 
     constructor(
-        essential: AreEqualCheck<TEntity>[],
-        optionalDescendingPriority: (AreEqualCheck<TEntity> & IsEmptyCheck<TEntity>)[],
-        interceptors: ((entity: TEntity) => TEntity)[]
+        essential: AreEqualCheck<TWanted, TTag>[],
+        optionalDescendingPriority: (AreEqualCheck<TWanted, TTag> & IsEmptyCheck<TTag>)[],
+        wantedInterceptors: ((entity: TWanted) => TWanted)[],
+        tagInterceptors: ((entity: TTag) => TTag)[]
     ) {
         this._essential = essential;
         this._optional = optionalDescendingPriority;
-        this._interceptors = interceptors;
+        this._wantedInterceptors = wantedInterceptors;
+        this._tagInterceptors = tagInterceptors;
     }
 
-    public findBestMatchIfExists(wanted: TEntity, tags: TEntity[]): TEntity | undefined {
-        const interceptedWanted = this.runInterceptors(wanted);
+    public findBestMatchIfExists(wanted: TWanted, tags: TTag[]): TTag | undefined {
+        const interceptedWanted = runInterceptors(wanted, this._wantedInterceptors);
 
-        let currentMatch: CurrentMatch<TEntity> | undefined;
+        let currentMatch: CurrentMatch<TTag> | undefined;
         for (const tag of tags) {
-            const interceptedTag = this.runInterceptors(tag);
+            const interceptedTag = runInterceptors(tag, this._tagInterceptors);
 
             if (this.hasEssentialDifferences(interceptedWanted, interceptedTag)) {
                 continue;
@@ -50,7 +53,7 @@ export class Matcher<TEntity> {
         return currentMatch?.tag;
     }
 
-    private hasEssentialDifferences(left: TEntity, right: TEntity): boolean {
+    private hasEssentialDifferences(left: TWanted, right: TTag): boolean {
         for (const field of this._essential) {
             if (!field.areEqual(left, right)) {
                 return true;
@@ -60,7 +63,7 @@ export class Matcher<TEntity> {
         return false;
     }
 
-    private numberOfMatchingOptionals(left: TEntity, right: TEntity): number {
+    private numberOfMatchingOptionals(left: TWanted, right: TTag): number {
         for (let index = 0; index < this._optional.length; index++) {
             const field = this._optional[index];
             if (!field.areEqual(left, right)) {
@@ -71,7 +74,7 @@ export class Matcher<TEntity> {
         return this._optional.length;
     }
 
-    private countConsecutiveEmptyOptionalFields(tag: TEntity, skipFields: number): number {
+    private countConsecutiveEmptyOptionalFields(tag: TTag, skipFields: number): number {
         let numberOfUndefined = 0;
         for (let index = skipFields; index < this._optional.length; index++) {
             const field = this._optional[index];
@@ -85,33 +88,41 @@ export class Matcher<TEntity> {
         return numberOfUndefined;
     }
 
-    private runInterceptors(tag: TEntity): TEntity {
-        let intercepted = tag;
-        for (const interceptor of this._interceptors) {
-            intercepted = interceptor(intercepted);
-        }
-
-        return intercepted;
+    public static create<T>(
+        essential: AreEqualCheck<T, T>[],
+        optionalDescendingPriority: (AreEqualCheck<T, T> & IsEmptyCheck<T>)[],
+        interceptors: ((entity: T) => T)[]){
+            return new Matcher<T, T>(essential, optionalDescendingPriority, interceptors, interceptors);
     }
 
     public static createFromKeys<T extends AllStringFields<T>>(
         essential: (keyof T)[],
         optionalDescendingPriority: (keyof T)[],
-        interceptors: ((tag: T) => T)[]): Matcher<T> {
-        return new Matcher<T>(
+        interceptors: ((tag: T) => T)[]): Matcher<T, T> {
+        return new Matcher<T, T>(
             essential.map(createEqualityCheck),
             optionalDescendingPriority.map(createEqualityAndEmptyCheck),
+            interceptors,
             interceptors
         );
     }
 
-    public static default(): Matcher<LanguageTag> {
+    public static default(): Matcher<LanguageTag, LanguageTag> {
         return this.createFromKeys<LanguageTag>(
             ["language"],
             ["script", "region"],
             [ interceptChinese]
         );
     }
+}
+
+function runInterceptors<T>(tag: T, interceptors: ((tag: T) => T)[]): T {
+    let intercepted = tag;
+    for (const interceptor of interceptors) {
+        intercepted = interceptor(intercepted);
+    }
+
+    return intercepted;
 }
 
 interface CurrentMatch<TEntity> {
